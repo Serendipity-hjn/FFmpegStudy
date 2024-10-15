@@ -1,0 +1,15 @@
+{
+    "Codegeex.RepoIndex": true,
+    "files.associations": {
+        "avcodec.h": "c",
+        "avformat.h": "c",
+        "avutil.h": "c"
+    },
+    "makefile.makefilePath": "/home/serenNan//FFmpegCode/src",
+    "C_Cpp.default.compilerPath": "/home/serenNan/FFmpegCode/src/Makefile",
+    "aide.convertLanguagePairs": {
+        "markdown": "markdown",
+        "c": "makefile"
+    },
+    "commentTranslate.hover.enabled": false
+}
