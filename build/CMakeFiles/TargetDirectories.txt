@@ -1,2 +1,0 @@
-/home/serendipity/studyFFmpeg/FFmpegCode/build/CMakeFiles/edit_cache.dir
-/home/serendipity/studyFFmpeg/FFmpegCode/build/CMakeFiles/rebuild_cache.dir
