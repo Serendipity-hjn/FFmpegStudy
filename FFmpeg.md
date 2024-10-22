@@ -993,7 +993,7 @@ int main(int argc, char **argv)
     // 循环读取输入文件中的数据包
     while (av_read_frame(inFmtCtx, packet) >= 0)
     {
-        // 如果数据包属于视频流
+        // 如果数据包属于视频流ff
         if (packet->stream_index == videoIndex)
         {
             // 解码视频帧
@@ -1067,4 +1067,41 @@ fail:
 3. **前后图像滤波处理**：
    - 在进行缩放和色彩空间转换时，应用滤波器以平滑图像，减少锯齿和伪影。
 
-# 
+### BMP文件格式
+**概念**：BMP文件格式，又称为Bitmap（位图）或是DIB（Device-Independent Device，设备无光位图），是Windows操作系统中的标准图像文件格式。由于它可以不作任何变换地保存图像像素域的数据，因此成为我们取得RAW数据的好来源。
+
+**扫描方式**：从左到右，从下到上
+
+**文件组成**：
+- 位图文件头（Bitmap File Header）：提供文件的格式，大小等信息
+- 位图信息头（Bitmap Information）：提供图像的尺寸，位平面数，压缩方式，颜色索引等信息。
+- 调色板（Color Palette）：可选，有些位图需要调色板，有些位图，比如真彩色图（24位的BMP）就不需要调色板。
+- 位图数据（Bitmap Data）：图像数据区
+
+**文件头结构体**：
+```cpp
+typedef struct tagBITMAPFILEHEADER {
+    WORD bfType;                    // 文件类型，必须是0x424D，即字符“BM”
+    DWORD bfSize;                   // bmp文件大小
+    WORD bfReserved1;               // 保留字
+    WORD bfReserved2;               // 保留字
+    DWORD bfOffBits;                // 实际位图数据的偏移字节数，即前三个部分长度之和
+    } BITMAPFILEHEADER;
+```
+
+**信息头结构体**：
+```cpp
+typedef struct tagBITMAPINFOHEADER {
+    DWORD biSize;                   //表示struct tagBITMAPINFOHEADER的长度，设为40
+    LONG biWidth;                   //bmp图片宽度
+    LONG biHeight;                  //bmp图片高度
+    WORD biPlanes;                  //bmp图片平面树，设为1
+    WORD biBitCount;                //bmp图片位数，即1位图，4位图，8位图，24位图等
+    DWORD biCompression;            //bmp图片压缩类型，0表示不压缩
+    DWORD biSizeImage;              //bmp图片数据大小，必须是4的整数倍
+    LONG biXPelsPerMeter;           //bmp图片水平分辨率
+    LONG biYPelsPerMeter;           //bmp图片垂直分辨率
+    DWORD biClrUsed;                //bmp图片实际使用的颜色表中的颜色数
+    DWORD biClrImportant;           //bmp图片对显示有重要影响的颜色索引的数目
+    } BITMAPINFOHEADER;
+```
