@@ -1,5 +1,5 @@
 TARGET=demoBin
-SRC=decodeImage.c
+SRC=encodeVideoDemo.c
 CC=gcc
 CFLAGS=-I../include
 LDFLAGS=-L../lib \

@@ -1105,3 +1105,15 @@ typedef struct tagBITMAPINFOHEADER {
     DWORD biClrImportant;           //bmp图片对显示有重要影响的颜色索引的数目
     } BITMAPINFOHEADER;
 ```
+
+## yuv到h264
+| 函数名                     | 描述               |
+| -------------------------- | ------------------ |
+| `avcodec_find_encoder`     | 查找编码器         |
+| `avcodec_alloc_context3`   | 创建编码器上下文   |
+| `avcodec_open2`            | 打开编码器         |
+| `av_frame_alloc`           | 分配帧内存         |
+| `av_image_get_buffer_size` | 获取图像缓冲区大小 |
+| `av_image_fill_arrays`     | 填充图像数据数组   |
+| `avcodec_send_frame`       | 发送帧到编码器     |
+| `avcodec_receive_packet`   | 从编码器接收数据包 |
