@@ -1,27 +1,29 @@
 cmake_minimum_required(VERSION 3.10)
+
+# 项目名称
 project(demoBin)
 
-set(CMAKE_C_STANDARD 11)
+# 设置C编译器
+set(CMAKE_C_COMPILER gcc)
 
-set(SRC decodeVideoChange.c)
+# 包含目录
+include_directories(../include)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(FFMPEG REQUIRED
-    libavutil
-    libavformat
-    libavcodec
-    libswscale
-    libswresample
-    libavfilter
-    libavdevice
-    libpostproc
-)
+# 源文件
+set(SRC main.cpp)
 
-include_directories(include)
-link_directories(lib)
-
+# 目标文件
 add_executable(${PROJECT_NAME} ${SRC})
 
+# 链接库
 target_link_libraries(${PROJECT_NAME}
-    ${FFMPEG_LIBRARIES}
+    -L../lib
+    -lavutil
+    -lavformat
+    -lavcodec
+    -lswscale
+    -lswresample
+    -lavfilter
+    -lavdevice
+    -lpostproc
 )

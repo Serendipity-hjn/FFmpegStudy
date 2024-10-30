@@ -13,6 +13,7 @@ int writePacketCount = 0;
 int encodeVideo(AVCodecContext *encoderCtx, AVFrame *frame, AVPacket *packet, FILE *dest_fp)
 {
     int ret = avcodec_send_frame(encoderCtx, frame);
+    // TODO : 处理错误
     if (ret < 0)
     {
         av_log(NULL, AV_LOG_ERROR, "send frame error:%s\n", av_err2str(ret));
@@ -27,12 +28,12 @@ int encodeVideo(AVCodecContext *encoderCtx, AVFrame *frame, AVPacket *packet, FI
         }
         else if (ret < 0)
         {
-            av_log(NULL,AV_LOG_ERROR,"encoder frrame failed:%s\n",av_err2str(ret));
+            av_log(NULL, AV_LOG_ERROR, "encoder frrame failed:%s\n", av_err2str(ret));
             return -1;
         }
         fwrite(packet->data, 1, packet->size, dest_fp);
         writePacketCount++;
-        av_log(NULL,AV_LOG_INFO,"writePacketCount : %d\n",writePacketCount);
+        av_log(NULL, AV_LOG_INFO, "writePacketCount : %d\n", writePacketCount);
         av_packet_unref(packet);
     }
 }
@@ -109,12 +110,12 @@ int main(int argc, char **argv)
     int readFrameCount = 0;
     while (fread(frameBuffer, 1, pictureSize * 3 / 2, src_fp) == pictureSize * 3 / 2)
     {
-        //Y 1 U 1/4 V 1/4
+        // Y 1 U 1/4 V 1/4
         frame->data[0] = frameBuffer;
         frame->data[1] = frameBuffer + pictureSize;
         frame->data[2] = frameBuffer + pictureSize + pictureSize / 4;
         readFrameCount++;
-        av_log(NULL,AV_LOG_INFO,"readFrameCount: %d\n",readFrameCount);
+        av_log(NULL, AV_LOG_INFO, "readFrameCount: %d\n", readFrameCount);
         encodeVideo(encoderCtx, frame, packet, dest_fp);
     }
 end:
