@@ -1260,5 +1260,42 @@ end:
 }
 
 ```
+# 音频解码
+## PCM介绍
+PCM（Pulse Code Modulation）是一种用于数字音频的标准编码格式。它通过将模拟音频信号转换为数字信号来表示音频数据。PCM 编码的基本原理是将模拟音频信号在时间上进行采样，并将每个采样点的幅度值量化为离散的数字值。<br>
+核心过程：采样->量化->编码
+### PCM关键要素
+- 采样率（Sample Rate）：每秒采样的次数，常见的采样率有 44.1 kHz、48 kHz 等。
+- 量化格式（Sample Format）：每个采样点的位数，常见的量化格式有 16 位、24 位等。
+- 声道数（Channels）：音频信号的声道数，如单声道、立体声等。 
+### PCM数据格式
+- 存储格式
+  - 双声道：采样数据按LRLR方式存储，即左声道和右声道交替存储，存储的时候与字节序有关。
+  - 单声道：采样数据按时间顺序存储（有时也会采用LRLR方式，但另一个声道数据为0）。
+<img src="imagesForNotes/声道.png" alt =声道 >
 
-> 代码报错！
+- 存储格式分为`Packed`和`Planner`两种，对于双通道音频，`Packed`为两个声道的数据交错存储;`Planner`为两个声道的数据分开存储。
+  - `Packed`：LRLRLR
+  - `Planner`：LLLRRR 
+
+- ffmpeg音频解码后的数据存放在AVFrame结构体中：
+  - Packed格式下，frame.data[0]存放所有声道的数据。
+  - Planner格式下，frame.data[i]存放第i个声道的数据。
+  - 左声道data[0]:LLLL...
+  - 右声道data[1]:RRRR...
+- Planner模式是ffmpeg内部存储模式，实际使用的音频文件都是Packed模式。
+
+### PCM计算
+- 大小计算：以CD的音质为例：量化格式为16比特（2字节），采样率为44100，声道数为2。
+  - 比特率为：16 * 44100 * 2 = 1378.125 kbps
+  - 每秒存储空间：1378.125 * 60/8/1024 = 10.09MB
+- ffmpeg提取pcm数据命令：
+```bash
+    ffmpeg -i break.aac -ar 48000 -ac 2 -f s16le out.pcm
+```
+- ffplay播放pcm数据命令：
+```bash
+    ffplay -ar 48000 -ac 2 -f s16le out.pcm
+```
+
+TODO 指令错误
