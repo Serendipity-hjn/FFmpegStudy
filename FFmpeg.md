@@ -120,7 +120,7 @@ ffplay out.aac
 | 打开媒体文件       | `avformat_open_input`    |
 | 获取码流信息       | `avformat_find_stream_info` |
 | 获取音频流         | `av_find_best_stream`    |
-| 初始化 packet      | `av_init_packet`         |
+| 初始化 packet      | `av_packet_alloc`         |
 | 读取 packet 数据   | `av_read_frame`          |
 | 释放 packet 数据   | `av_packet_unref`        |
 | 关闭媒体文件       | `avformat_close_input`   |
@@ -832,7 +832,8 @@ ffplay -f output.rgb -pix_fmt rgb24 -s widthxheight output.rgb
 
 通过解码，会发现照片内存明显变大，因为RGB格式存储了更多的颜色信息，所以我们需要对照片进行编码
 
-## YUV介绍
+TODO完善
+## YUV介绍 
 YUV 是一种颜色编码系统，常用于视频和图像处理中。`Y` 代表亮度（Luminance），`U` 和 `V` 代表色度（Chrominance）。YUV 格式有多种变体，如 YUV420、YUV422、YUV444 等。
 
 ## 视频解码流程
@@ -1291,11 +1292,205 @@ PCM（Pulse Code Modulation）是一种用于数字音频的标准编码格式�
   - 每秒存储空间：1378.125 * 60/8/1024 = 10.09MB
 - ffmpeg提取pcm数据命令：
 ```bash
-    ffmpeg -i break.aac -ar 48000 -ac 2 -f s16le out.pcm
+    ffmpeg -i input.aac -ar 48000 -ac 2 -f s16le output.pcm
 ```
 - ffplay播放pcm数据命令：
 ```bash
-    ffplay -ar 48000 -ac 2 -f s16le out.pcm
+    ffplay -ar 48000 -ac 2 -f s16le output.pcm
+```
+通过上述指令播放不成功的话，可以尝试转换PCM文件
+```bash
+ffmpeg -f s16le -ar 48000 -ac 2 -i output.pcm output_stereo.wav
+ffplay output_stereo.wav
 ```
 
-TODO 指令错误
+## 音频解码流程
+
+| 函数名                        | 描述                                                                 |
+|-------------------------------|----------------------------------------------------------------------|
+| `avformat_open_input()`        | 打开输入文件或流并读取头部信息。                                       |
+| `avformat_find_stream_info()`  | 读取一些数据包以获取流信息。                                           |
+| `av_find_best_stream()`        | 查找最佳流（音频、视频或字幕）。                                       |
+| `avcodec_alloc_context3()`     | 分配解码器上下文。                                                     |
+| `avcodec_parameters_to_context()` | 将流参数复制到解码器上下文中。                                         |
+| `avcodec_find_decoder()`       | 查找合适的解码器。                                                     |
+| `avcodec_open2()`              | 打开解码器。                                                           |
+| `av_frame_alloc()`             | 分配AVFrame结构体。                                                    |
+| `av_samples_get_buffer_size()` | 计算音频缓冲区的大小。                                                 |
+| `avcodec_fill_audio_frame()`   | 填充音频帧的缓冲区。                                                   |
+| `av_read_frame()`              | 从输入文件或流中读取数据包。                                           |
+| `avcodec_send_packet()`        | 将数据包发送到解码器进行解码。                                         |
+| `avcodec_receive_frame()`      | 从解码器接收解码后的帧。                                               |
+
+
+### 代码
+```c
+#include "libavcodec/avcodec.h"
+#include "libavformat/avformat.h"
+#include "libavutil/avutil.h"
+#include <libavcodec/codec.h>
+#include <libavcodec/packet.h>
+#include <time.h>
+
+int decodeAudio(AVCodecContext *decoderCtx, AVPacket *packet, AVFrame *frame, FILE *dest_fp)
+{
+    int ret = avcodec_send_packet(decoderCtx, packet);
+    if (ret < 0)
+    {
+        av_log(NULL, AV_LOG_ERROR, "send packet to decoder failed: %s\n", av_err2str(ret));
+        return -1;
+    }
+    int channel = 0;
+    while (ret >= 0)
+    {
+        ret = avcodec_receive_frame(decoderCtx, frame);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+        {
+            return 0;
+        }
+        else if (ret < 0)
+        {
+            av_log(NULL, AV_LOG_ERROR, "decode packet failed: %s\n", av_err2str(ret));
+            return -1;
+        }
+        int dataSize = av_get_bytes_per_sample(decoderCtx->sample_fmt);
+        if (dataSize < 0)
+        {
+            av_log(NULL, AV_LOG_ERROR, "get bytes per sample failed\n");
+            return -1;
+        }
+        // frame fltp 2
+        /*
+            data[0] L L L L
+            data[1] R R R R
+
+            --> L R L R L R L R
+        */
+        for (int i = 0; i < frame->nb_samples; i++)
+        {
+            for (channel = 0; channel < decoderCtx->ch_layout.nb_channels; channel++)
+            {
+                fwrite(frame->data[channel] + dataSize * i, 1, dataSize, dest_fp);
+            }
+        }
+    }
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    av_log_set_level(AV_LOG_DEBUG);
+    if (argc < 3)
+    {
+        av_log(NULL, AV_LOG_ERROR, "Usage: %s <input> <output>\n", argv[0]);
+    }
+    const char *inFileName = argv[1];
+    const char *outFileName = argv[2];
+
+    AVFormatContext *inFmtCtx = NULL;
+
+    int ret = avformat_open_input(&inFmtCtx, inFileName, NULL, NULL);
+    if (ret < 0)
+    {
+        av_log(NULL, AV_LOG_ERROR, "open %s failed\n", inFileName);
+        return -1;
+    }
+
+    ret = avformat_find_stream_info(inFmtCtx, NULL);
+    if (ret < 0)
+    {
+        av_log(NULL, AV_LOG_ERROR, "find stream error:%s\n", av_err2str(ret));
+        goto fail;
+    }
+
+    ret = av_find_best_stream(inFmtCtx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
+    if (ret < 0)
+    {
+        av_log(NULL, AV_LOG_ERROR, "find best stream error:%s\n", av_err2str(ret));
+        goto fail;
+    }
+
+    int audioStreamIndex = ret;
+    AVCodecContext *decoderCtx = avcodec_alloc_context3(NULL);
+    if (decoderCtx == NULL)
+    {
+        av_log(NULL, AV_LOG_ERROR, "alloc codec context failed\n");
+        goto fail;
+    }
+
+    ret = avcodec_parameters_to_context(decoderCtx, inFmtCtx->streams[audioStreamIndex]->codecpar);
+    const AVCodec *decoder = avcodec_find_decoder(decoderCtx->codec_id);
+    if (decoder == NULL)
+    {
+        av_log(NULL, AV_LOG_ERROR, "find decoder %d failed\n", decoderCtx->codec_id);
+        ret = -1;
+        goto fail;
+    }
+
+    ret = avcodec_open2(decoderCtx, decoder, NULL);
+    if (ret != 0)
+    {
+        av_log(NULL, AV_LOG_ERROR, "open decoder error:%s\n", av_err2str(ret));
+        goto fail;
+    }
+
+    FILE *dest_fp = fopen(outFileName, "wb");
+    if (dest_fp == NULL)
+    {
+        av_log(NULL, AV_LOG_ERROR, "open %s failed\n", outFileName);
+        ret = -1;
+        goto fail;
+    }
+
+    AVFrame *frame = av_frame_alloc();
+    int frameSize = av_samples_get_buffer_size(NULL, decoderCtx->ch_layout.nb_channels, frame->nb_samples,
+                                               decoderCtx->sample_fmt, 1);
+    uint8_t *frameBuffer = av_malloc(frameSize);
+
+    avcodec_fill_audio_frame(frame, decoderCtx->ch_layout.nb_channels, decoderCtx->sample_fmt,
+                             frameBuffer, frameSize, 1);
+
+    AVPacket *packet = av_packet_alloc();
+    while (av_read_frame(inFmtCtx, packet) >= 0)
+    {
+        if (packet->stream_index == audioStreamIndex)
+        {
+            decodeAudio(decoderCtx, packet, frame, dest_fp);
+        }
+        av_packet_unref(packet);
+    }
+    decodeAudio(decoderCtx, NULL, frame, dest_fp);
+
+fail:
+    if (inFmtCtx)
+    {
+        avformat_close_input(&inFmtCtx);
+    }
+    if (decoderCtx)
+    {
+        avcodec_free_context(&decoderCtx);
+    }
+    if (frame)
+    {
+        av_frame_free(&frame);
+    }
+    if (frameBuffer)
+    {
+        av_freep(frameBuffer);
+    }
+    if (dest_fp)
+    {
+        fclose(dest_fp);
+    }
+    return ret;
+}
+```
+
+运行指令
+```bash
+./demoBin ../video/test.aac ../video/test_decode_by_code.pcm 
+
+ffmpeg -f f32le -ar 44100 -ac 2 -i ../video/test_decode_by_code.pcm ../video/test_decode_by_code_stereo.wav
+
+ffplay ../video/test_decode_by_code_stereo.wav 
+```
