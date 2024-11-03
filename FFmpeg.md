@@ -1,6 +1,88 @@
+# 视频安装步骤
+参考视频：[2023C++名企领航班-FFmpeg与音视频编解码+OpenCV图像处理](https://www.bilibili.com/video/BV1DB4y1o7XX?spm_id_from=333.788.videopod.episodes&vd_source=4f1c34c711e7ec1d5bca2f62af5665d4)
+
+<img src="./imagesForNotes/安装1.png" alt="安装教程" width="900">
+
+<img src="./imagesForNotes/安装2.png" alt="安装教程" width="900" >
+
+
+
+```c
+./configure \                                                                                 0 (20.192s) < 14:23:34          --prefix='/usr/local/ffmpeg' \
+          --enable-gpl \
+          --enable-nonfree \
+          --enable-ffplay \
+          --enable-libfdk-aac \
+          --enable-libmp3lame \
+          --enable-libx264 \
+          --enable-libx265 \
+          --enable-filter=delogo \
+          --enable-debug \
+          --disable-optimizations \
+          --enable-libspeex \
+          --enable-shared \
+          --enable-pthreads \
+          --enable-version3 \
+          --enable-hardcoded-tables \
+          --extra-cflags="-I/usr/local/ffmpeg/include" \
+          --extra-ldflags="-L/usr/local/ffmpeg/lib"
+```
+
+后面安装了很多路径
+
+<img src="./imagesForNotes/安装3.png" alt="安装教程" width="900" >
+<img src="./imagesForNotes/安装4.png" alt="安装教程" width="900" >
+
+
+<img src="./imagesForNotes/安装5.png" alt="安装教程" width="900" >
+
+
+<img src="./imagesForNotes/安装6.png" alt="安装教程" width="900" >
+
+<img src="./imagesForNotes/安装7.png" alt="安装教程" width="900" >
+
+
+<img src="./imagesForNotes/安装8.png" alt="安装教程" width="900" >
+
+<img src="./imagesForNotes/安装9.png" alt="安装教程" width="900" >
+
+
+<img src="./imagesForNotes/安装10.png" alt="安装教程" width="900" >
+
+
+<img src="./imagesForNotes/安装11.png" alt="安装教程" width="900" >
+
+
+<img src="./imagesForNotes/安装12.png" alt="安装教程" width="900" >
+
+
+```c
+sudo apt-get install libasound2-dev
+sudo apt-get install libpulse-dev
+sudo apt-get install libx11-dev
+sudo apt-get install xorg-dev
+```
+
+```c
+./configure --prefix=/usr/local/ffmpeg --enable-shared --enable-video-x11 --enable-x11-shared --enable-video-x11-vm
+```
+
+<img src="./imagesForNotes/安装13.png" alt="安装教程" width="900" >
+
+
+<img src="./imagesForNotes/安装14.png" alt="安装教程" width="900" >
+
+
+ffplay一直无法播放视频的话（因为我是用的wsl2），尝试在终端配置文件加上`SDL_RENDER_DRIVER=software`
+
+在fish终端配置文件加
+```c
+set -x SDL_RENDER_DRIVER software
+```
+
 # 基础命令
 
-![image.png](https://prod-files-secure.s3.us-west-2.amazonaws.com/2e8fa83e-23de-49cc-bd54-18f393bee62b/2aba7c99-de29-46e7-bfa0-be3d02085ed2/image.png)
+[CSDN博主总结常用命令](https://blog.csdn.net/wenmingzheng/article/details/88373192?ops_request_misc=%257B%2522request%255Fid%2522%253A%25228EA3F7CC-D940-48CA-A46F-A57216709319%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=8EA3F7CC-D940-48CA-A46F-A57216709319&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_positive~default-1-88373192-null-null.142^v100^pc_search_result_base1&utm_term=ffmpeg%E5%91%BD%E4%BB%A4&spm=1018.2226.3001.4187)
 
 # P8基础信息，输出Metadata
 
@@ -111,10 +193,13 @@ AAC（Advanced Audio Coding）是一种高级音频编码技术，广泛用于�
 3. **低延迟**：AAC设计用于低延迟应用，适合实时音频传输。
 4. **灵活性**：AAC支持多种比特率和采样率，适用于不同的应用场景。
 
+
 ```bash
 ffmpeg -y -i out.mp4 -vn -acodec copy out.aac
 ffplay out.aac
 ```
+
+## 流程
 | 操作步骤           | 函数名                  |
 |--------------------|-------------------------|
 | 打开媒体文件       | `avformat_open_input`    |
@@ -125,6 +210,7 @@ ffplay out.aac
 | 释放 packet 数据   | `av_packet_unref`        |
 | 关闭媒体文件       | `avformat_close_input`   |
 
+## 代码
 ```c
 #include "libavutil/avutil.h"
 #include "libavformat/avformat.h"
@@ -294,8 +380,19 @@ ADTS（Audio Data Transport Stream）和ADIF（Audio Data Interchange Format）�
 
 # 提取H264视频数据
 
+## 流程
 流程和提取aac文件一样
+| 操作步骤           | 函数名                  |
+|--------------------|-------------------------|
+| 打开媒体文件       | `avformat_open_input`    |
+| 获取码流信息       | `avformat_find_stream_info` |
+| 获取音频流         | `av_find_best_stream`    |
+| 初始化 packet      | `av_packet_alloc`         |
+| 读取 packet 数据   | `av_read_frame`          |
+| 释放 packet 数据   | `av_packet_unref`        |
+| 关闭媒体文件       | `avformat_close_input`   |
 
+## 代码
 ```c
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
@@ -385,7 +482,8 @@ fail:
 
 如果想提取mp4格式的文件，需要进行以下步骤
 
-## mp4→h264
+# mp4→h264
+## 流程
 | 函数名                  | 描述                                                         |
 |-------------------------|--------------------------------------------------------------|
 | `av_bsf_get_by_name`    | 根据名称获取比特流过滤器                                     |
@@ -396,7 +494,7 @@ fail:
 | `av_bsf_receive_packet` | 从比特流过滤器接收处理后的数据包                             |
 | `av_bsf_free`           | 释放比特流过滤器上下文及相关资源                             |
 
-
+## 代码
 ```c
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
@@ -521,21 +619,22 @@ PTS-显示时间戳
 
 DTS-解码时间戳
 
-## 转封装流程
+## 流程
 
 | 步骤                   | 对应函数                       |
 | ---------------------- | ------------------------------ |
-| 打开输入媒体文件       | avformat_open_input            |
-| 获取输入流信息         | avformat_find_stream_info      |
-| 创建输出流上下文       | avformat_alloc_output_context2 |
-| 创建输出码流的AVStream | avformat_new_stream            |
-| 拷贝编码参数           | avcodec_parameters_copy        |
-| 写入视频文件头         | avformat_write_header          |
-| 读取输入视频流         | av_read_frame                  |
-| 计算pts/dts/duration   | av_rescale_q_rnd/av_rescale_q  |
-| 写入视频流数据         | av_interleaved_write_frame     |
-| 写入视频文件末尾       | av_write_trailer               |
+| 打开输入媒体文件       | `avformat_open_input`            |
+| 获取输入流信息         | `avformat_find_stream_info`      |
+| 创建输出流上下文       | `avformat_alloc_output_context2` |
+| 创建输出码流的AVStream | `avformat_new_stream`            |
+| 拷贝编码参数           | `avcodec_parameters_copy`        |
+| 写入视频文件头         | `avformat_write_header`          |
+| 读取输入视频流         | `av_read_frame`                  |
+| 计算pts/dts/duration   | `av_rescale_q_rnd`/`av_rescale_q`  |
+| 写入视频流数据         | `av_interleaved_write_frame`     |
+| 写入视频文件末尾       | `av_write_trailer`               |
 
+## 代码
 ```c
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
@@ -709,6 +808,7 @@ PTS：显示时间戳，在什么时候开始显示这一帧数据，转成时�
 
 DTS：解码时间戳，在什么时候开始解码这一帧数据，转成时间：DTS * 时间基
 
+## 代码
 ```c
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
@@ -768,19 +868,17 @@ int main(int argc, char **argv)
 
 | 步骤                      | 对应函数                       |
 | ------------------------- | ------------------------------ |
-| 1. 打开输入媒体文件       | avformat_open_input            |
-| 2. 获取输入流信息         | avformat_find_stream_info      |
-| 3. 创建输出流上下文       | avformat_alloc_output_context2 |
-| 4. 创建输出码流的AVStream | avformat_new_stream            |
-| 5. 拷贝编码参数           | avcodec_parameters_copy        |
-| 6. 写入视频文件头         | avformat_write_header          |
-| 7. 读取输入视频流         | av_read_frame                  |
-| 8. 跳转指定时间戳         | av_seek_frame                  |
-| 9. 计算pts/dts/duration   | av_rescale_q_rnd/av_rescale_q  |
-| 10. 写入视频流数据        | av_interleaved_write_frame     |
-| 11. 写入视频文件末尾      | av_write_trailer               |
-
-[if (!(outFmtCtx->oformat->flags & AVFMT_NOFILE))](https://www.notion.so/if-outFmtCtx-oformat-flags-AVFMT_NOFILE-1187c25c79d08036bde1c286d0b3c943?pvs=21)
+| 1. 打开输入媒体文件       | `avformat_open_input`            |
+| 2. 获取输入流信息         | `avformat_find_stream_info`      |
+| 3. 创建输出流上下文       | `avformat_alloc_output_context2` |
+| 4. 创建输出码流的AVStream | `avformat_new_stream`            |
+| 5. 拷贝编码参数           | `avcodec_parameters_copy`        |
+| 6. 写入视频文件头         | `avformat_write_header`          |
+| 7. 读取输入视频流         | `av_read_frame`                  |
+| 8. 跳转指定时间戳         | `av_seek_frame`                  |
+| 9. 计算pts/dts/duration   | `av_rescale_q_rnd`/`av_rescale_q`  |
+| 10. 写入视频流数据        | `av_interleaved_write_frame`     |
+| 11. 写入视频文件末尾      | `av_write_trailer`               |
 
 # 视频解码
 如何使用ffmpeg接口对视频解码
@@ -813,7 +911,7 @@ RGB1、RGB4、RGB8 是计算机图形学中常见的颜色编码格式，它们�
 这些格式在现代计算机图形处理中已经较少使用，但在某些特定的应用场景或历史研究中仍然具有参考价值。
 **像素格式**：。。。（后续觉得有必要再补上）
 
-### 命令
+**命令**
 ffmpeg命令将图片转RGB数据
 ```bash
 ffmpeg -i input.png -pix_fmt rgb24 output.rgb
@@ -836,7 +934,7 @@ TODO完善
 ## YUV介绍 
 YUV 是一种颜色编码系统，常用于视频和图像处理中。`Y` 代表亮度（Luminance），`U` 和 `V` 代表色度（Chrominance）。YUV 格式有多种变体，如 YUV420、YUV422、YUV444 等。
 
-## 视频解码流程
+## 流程
 | 函数名                          | 描述                                   |
 | ------------------------------- | -------------------------------------- |
 | `av_find_best_stream`           | 在媒体文件中查找最佳流                 |
@@ -853,9 +951,9 @@ YUV 是一种颜色编码系统，常用于视频和图像处理中。`Y` 代表
 ./demoBin ../video/test.mp4 test.yuv
 ffplay test.yuv -video_size 720x1280 -pixel_format yuv420p 
 ```
-播放的视频乱码，主要是由于`width`和`linesize`大小不一样
-
-### 代码部分
+如果播放的视频乱码，主要是由于`width`和`linesize`大小不一样
+后续更改视频格式的时候会解决这个问题
+## 代码
 ```c
 #include "libavutil/avutil.h"
 #include "libavformat/avformat.h"
@@ -1031,8 +1129,9 @@ fail:
 }
 ```
 
-## 更改视频格式流程
+# 更改视频格式
 
+## 流程
 | 函数名                  | 描述                                                                 |
 |-------------------------|----------------------------------------------------------------------|
 | `av_parse_video_size`   | 解析视频尺寸字符串（如 "1920x1080"）并返回宽度和高度。               |
@@ -1043,19 +1142,19 @@ fail:
 | `av_image_fill_arrays`  | 将图像数据填充到 `AVFrame` 的缓冲区中，并设置相关的行大小和数据指针。 |
 | `sws_scale`             | 使用 `SwsContext` 对图像进行缩放或格式转换。                         |
 
-### 解码后的数据存储
+## 解码后的数据存储
 
 解码后的视频数据通常存储在 `data[0]`、`data[1]`、`data[2]` 等数组中。具体来说：
 
 - **`data[0]`**: 存储了 `linesize[0] * height` 个数据。
 - **`data[1]`** 和 **`data[2]`**: 存储了其他平面的数据（如YUV格式中的U和V平面）。
 
-### 内存对齐和 `linesize`
+## 内存对齐和 `linesize`
 
 - **`linesize[0]`**: 实际上并不等于图像的宽度 `width`，而是比宽度大。
 - 这种差异是由于内存对齐的需求，以及解码器的CPU和其他优化原因导致的。
 
-### `sws_scale` 函数功能
+## `sws_scale` 函数功能
 
 `sws_scale` 函数是 FFmpeg 中用于图像缩放和格式转换的核心函数。它主要完成以下功能：
 
@@ -1068,7 +1167,7 @@ fail:
 3. **前后图像滤波处理**：
    - 在进行缩放和色彩空间转换时，应用滤波器以平滑图像，减少锯齿和伪影。
 
-### BMP文件格式
+## BMP文件格式
 **概念**：BMP文件格式，又称为Bitmap（位图）或是DIB（Device-Independent Device，设备无光位图），是Windows操作系统中的标准图像文件格式。由于它可以不作任何变换地保存图像像素域的数据，因此成为我们取得RAW数据的好来源。
 
 **扫描方式**：从左到右，从下到上
@@ -1107,7 +1206,8 @@ typedef struct tagBITMAPINFOHEADER {
     } BITMAPINFOHEADER;
 ```
 
-## yuv到h264
+# yuv到h264
+## 流程
 | 函数名                     | 描述               |
 | -------------------------- | ------------------ |
 | `avcodec_find_encoder`     | 查找编码器         |
@@ -1119,7 +1219,7 @@ typedef struct tagBITMAPINFOHEADER {
 | `avcodec_send_frame`       | 发送帧到编码器     |
 | `avcodec_receive_packet`   | 从编码器接收数据包 |
 
-## 视频解码代码
+## 代码
 ```c
 #include "libavcodec/avcodec.h"
 #include "libavutil/avutil.h"
@@ -1262,13 +1362,16 @@ end:
 
 ```
 # 音频解码
+
 ## PCM介绍
 PCM（Pulse Code Modulation）是一种用于数字音频的标准编码格式。它通过将模拟音频信号转换为数字信号来表示音频数据。PCM 编码的基本原理是将模拟音频信号在时间上进行采样，并将每个采样点的幅度值量化为离散的数字值。<br>
 核心过程：采样->量化->编码
+
 ### PCM关键要素
 - 采样率（Sample Rate）：每秒采样的次数，常见的采样率有 44.1 kHz、48 kHz 等。
 - 量化格式（Sample Format）：每个采样点的位数，常见的量化格式有 16 位、24 位等。
 - 声道数（Channels）：音频信号的声道数，如单声道、立体声等。 
+
 ### PCM数据格式
 - 存储格式
   - 双声道：采样数据按LRLR方式存储，即左声道和右声道交替存储，存储的时候与字节序有关。
@@ -1294,17 +1397,19 @@ PCM（Pulse Code Modulation）是一种用于数字音频的标准编码格式�
 ```bash
     ffmpeg -i input.aac -ar 48000 -ac 2 -f s16le output.pcm
 ```
+
 - ffplay播放pcm数据命令：
 ```bash
     ffplay -ar 48000 -ac 2 -f s16le output.pcm
 ```
+
 通过上述指令播放不成功的话，可以尝试转换PCM文件
 ```bash
 ffmpeg -f s16le -ar 48000 -ac 2 -i output.pcm output_stereo.wav
 ffplay output_stereo.wav
 ```
 
-## 音频解码流程
+## 流程
 
 | 函数名                        | 描述                                                                 |
 |-------------------------------|----------------------------------------------------------------------|
@@ -1323,7 +1428,8 @@ ffplay output_stereo.wav
 | `avcodec_receive_frame()`      | 从解码器接收解码后的帧。                                               |
 
 
-## 音频解码代码
+## 代码
+[decodeAudio.c](src/decodeAudio.c)
 ```c
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
@@ -1496,7 +1602,7 @@ ffplay ../video/test_decode_by_code_stereo.wav
 ```
 
 # 音频编码
-## 音频编码流程
+## 流程
 | 函数名 | 描述 |
 | --- | --- |
 | `av_frame_alloc` | 分配一个AVFrame结构体 |
@@ -1514,7 +1620,7 @@ ffmpeg -ac 2 -ar 44100 -f s16le -i test.pcm -acodec libfdk_aac test1.aac
 ffplay test1.aac
 ```
 
-## 音频编码代码
+## 代码
 ```c
 #include "libavcodec/avcodec.h"
 #include "libavutil/avutil.h"
