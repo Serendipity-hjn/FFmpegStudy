@@ -36,6 +36,7 @@ int encodeVideo(AVCodecContext *encoderCtx, AVFrame *frame, AVPacket *packet, FI
         av_log(NULL, AV_LOG_INFO, "writePacketCount : %d\n", writePacketCount);
         av_packet_unref(packet);
     }
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -118,6 +119,8 @@ int main(int argc, char **argv)
         av_log(NULL, AV_LOG_INFO, "readFrameCount: %d\n", readFrameCount);
         encodeVideo(encoderCtx, frame, packet, dest_fp);
     }
+    encodeVideo(encoderCtx, NULL, packet, dest_fp);
+
 end:
     if (encoderCtx)
     {
