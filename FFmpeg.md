@@ -84,11 +84,13 @@ set -x SDL_RENDER_DRIVER software
 
 [CSDN博主总结常用命令](https://blog.csdn.net/wenmingzheng/article/details/88373192?ops_request_misc=%257B%2522request%255Fid%2522%253A%25228EA3F7CC-D940-48CA-A46F-A57216709319%2522%252C%2522scm%2522%253A%252220140713.130102334..%2522%257D&request_id=8EA3F7CC-D940-48CA-A46F-A57216709319&biz_id=0&utm_medium=distribute.pc_search_result.none-task-blog-2~all~top_positive~default-1-88373192-null-null.142^v100^pc_search_result_base1&utm_term=ffmpeg%E5%91%BD%E4%BB%A4&spm=1018.2226.3001.4187)
 
-# P8基础信息，输出Metadata
+# 获得基础信息，输出Metadata
 
 打开媒体文件，获取Meta信息，关闭媒体文件
+## 代码
+[dumpMetaData.c](src/dumpMetaData.c)
 
-```cpp
+```c
 #include "libavutil/log.h"
 #include "libavformat/avformat.h"
 
@@ -97,6 +99,7 @@ int main(int argc, char **argv)
 {
 	// 设置日志级别
 	av_log_set_level(AV_LOG_DEBUG);
+	// 设置日志输出函数
 
 	// 检查参数个数
 	if (argc < 2)
@@ -105,15 +108,15 @@ int main(int argc, char **argv)
 		return -1;
 	}
 
-	// 获取输入文件名（命令行输入）
+	// 获取输入文件名
 	const char *infileName = argv[1];
 
-	// 初始化所有组件，存储从命令行内获取到的文件信息
+	// 初始化所有组件
 	AVFormatContext *pFormatCtx = NULL;
 
 	// 打开媒体文件
 	int ret = avformat_open_input(&pFormatCtx, infileName, NULL, NULL);
-	
+
 	// av_err2str()函数返回错误信息
 	if (ret != 0)
 	{
@@ -124,12 +127,13 @@ int main(int argc, char **argv)
 
 	// 获取媒体文件信息
 	av_dump_format(pFormatCtx, 0, infileName, 0);
-	
+
 	// 关闭媒体文件
 	avformat_close_input(&pFormatCtx);
 
 	return 0;
 }
+
 
 ```
 
@@ -211,6 +215,7 @@ ffplay out.aac
 | 关闭媒体文件       | `avformat_close_input`   |
 
 ## 代码
+[demuxing_audio.c](src/demuxing_audio.c)
 ```c
 #include "libavutil/avutil.h"
 #include "libavformat/avformat.h"
@@ -393,6 +398,7 @@ ADTS（Audio Data Transport Stream）和ADIF（Audio Data Interchange Format）�
 | 关闭媒体文件       | `avformat_close_input`   |
 
 ## 代码
+[demuxing_video.c](src/demuxing_video.c)
 ```c
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
@@ -427,6 +433,8 @@ int main(int argc, char **argv)
     }
 
     ret = av_find_best_stream(inFmtCtx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+
+
     if (ret < 0)
     {
         av_log(NULL, AV_LOG_ERROR, "Find best stream failed:%s\n", av_err2str(ret));
@@ -495,6 +503,7 @@ fail:
 | `av_bsf_free`           | 释放比特流过滤器上下文及相关资源                             |
 
 ## 代码
+[mp4toh264.c](src/mp4toh264.c)
 ```c
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
@@ -635,6 +644,7 @@ DTS-解码时间戳
 | 写入视频文件末尾       | `av_write_trailer`               |
 
 ## 代码
+[mp4toflv.c](src/mp4toflv.c)
 ```c
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
@@ -808,7 +818,27 @@ PTS：显示时间戳，在什么时候开始显示这一帧数据，转成时�
 
 DTS：解码时间戳，在什么时候开始解码这一帧数据，转成时间：DTS * 时间基
 
+## 流程
+
+截取封装文件处理流程和转封装流程几乎一样，只是多了一个跳转指定时间戳的步骤。以下是详细流程：
+
+| 步骤                      | 对应函数                       |
+| ------------------------- | ------------------------------ |
+| 1. 打开输入媒体文件       | `avformat_open_input`            |
+| 2. 获取输入流信息         | `avformat_find_stream_info`      |
+| 3. 创建输出流上下文       | `avformat_alloc_output_context2` |
+| 4. 创建输出码流的AVStream | `avformat_new_stream`            |
+| 5. 拷贝编码参数           | `avcodec_parameters_copy`        |
+| 6. 写入视频文件头         | `avformat_write_header`          |
+| 7. 读取输入视频流         | `av_read_frame`                  |
+| 8. 跳转指定时间戳         | `av_seek_frame`                  |
+| 9. 计算pts/dts/duration   | `av_rescale_q_rnd`/`av_rescale_q`  |
+| 10. 写入视频流数据        | `av_interleaved_write_frame`     |
+| 11. 写入视频文件末尾      | `av_write_trailer`               |
+
 ## 代码
+[demuxing_dir.c](src/demuxing_dir.c)
+
 ```c
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
@@ -862,24 +892,6 @@ int main(int argc, char **argv)
 }
 ```
 
-## 截取封装文件处理流程
-
-截取封装文件处理流程和转封装流程几乎一样，只是多了一个跳转指定时间戳的步骤。以下是详细流程：
-
-| 步骤                      | 对应函数                       |
-| ------------------------- | ------------------------------ |
-| 1. 打开输入媒体文件       | `avformat_open_input`            |
-| 2. 获取输入流信息         | `avformat_find_stream_info`      |
-| 3. 创建输出流上下文       | `avformat_alloc_output_context2` |
-| 4. 创建输出码流的AVStream | `avformat_new_stream`            |
-| 5. 拷贝编码参数           | `avcodec_parameters_copy`        |
-| 6. 写入视频文件头         | `avformat_write_header`          |
-| 7. 读取输入视频流         | `av_read_frame`                  |
-| 8. 跳转指定时间戳         | `av_seek_frame`                  |
-| 9. 计算pts/dts/duration   | `av_rescale_q_rnd`/`av_rescale_q`  |
-| 10. 写入视频流数据        | `av_interleaved_write_frame`     |
-| 11. 写入视频文件末尾      | `av_write_trailer`               |
-
 # 视频解码
 如何使用ffmpeg接口对视频解码
 ## RGB介绍
@@ -912,10 +924,12 @@ RGB1、RGB4、RGB8 是计算机图形学中常见的颜色编码格式，它们�
 **像素格式**：。。。（后续觉得有必要再补上）
 
 **命令**
+
 ffmpeg命令将图片转RGB数据
 ```bash
 ffmpeg -i input.png -pix_fmt rgb24 output.rgb
 ```
+
 注意输出信息中会输出图片大小，下面的`ffplay`需要用 
 ```text
 Stream #0:0: Video: png, rgba(pc, gbr/bt709/iec61966-2-1), 1920x1200 [SAR 5669:5669 DAR 8:5], 25 fps, 25 tbr, 25 tbn
@@ -951,9 +965,12 @@ YUV 是一种颜色编码系统，常用于视频和图像处理中。`Y` 代表
 ./demoBin ../video/test.mp4 test.yuv
 ffplay test.yuv -video_size 720x1280 -pixel_format yuv420p 
 ```
+
 如果播放的视频乱码，主要是由于`width`和`linesize`大小不一样
-后续更改视频格式的时候会解决这个问题
+后续的更改视频格式的时候会解决这个问题
+
 ## 代码
+[decodeVideo.c](src/decodeVideo.c)
 ```c
 #include "libavutil/avutil.h"
 #include "libavformat/avformat.h"
@@ -1142,6 +1159,224 @@ fail:
 | `av_image_fill_arrays`  | 将图像数据填充到 `AVFrame` 的缓冲区中，并设置相关的行大小和数据指针。 |
 | `sws_scale`             | 使用 `SwsContext` 对图像进行缩放或格式转换。                         |
 
+## 代码
+[decodeVideoChange.c](src/decodeVideoChange.c)
+
+```c
+#include "libavutil/avutil.h"
+#include "libavformat/avformat.h"
+#include "libavcodec/avcodec.h"
+#include "libswscale/swscale.h"
+#include "libavutil/parseutils.h"
+#include "libavutil/imgutils.h"
+
+// 定义一个全局变量，用于记录解码的帧数
+int frameCount = 0;
+
+// 解码视频帧的函数
+int decodeVideo(AVCodecContext *codecCtx, AVPacket *packet, struct SwsContext *swsCtx, int destWidth, int destHeight, AVFrame *destFrame, FILE *dest_fp)
+{
+    // 将数据包发送到解码器
+    int ret = avcodec_send_packet(codecCtx, packet);
+    if (ret != 0)
+    {
+        // 如果发送失败，记录错误信息
+        av_log(NULL, AV_LOG_ERROR, "Could not send packet:%s\n", av_err2str(ret));
+        return -1;
+    }
+
+    // 分配一个AVFrame结构体，用于存储解码后的帧数据
+    AVFrame *frame = av_frame_alloc();
+    // 循环接收解码后的帧数据
+    while (avcodec_receive_frame(codecCtx, frame) == 0)
+    {
+        sws_scale(swsCtx, (const uint8_t *const*)frame->data, frame->linesize, 0, codecCtx->height, destFrame->data, destFrame->linesize);
+        // 将帧数据写入输出文件
+        fwrite(destFrame->data[0], 1, destWidth * destHeight, dest_fp);
+        fwrite(destFrame->data[1], 1, destWidth * destHeight / 4, dest_fp);
+        fwrite(destFrame->data[2], 1, destWidth * destHeight / 4, dest_fp);
+        // 增加帧计数
+        frameCount++;
+        // 记录当前帧数
+        av_log(NULL, AV_LOG_INFO, "frameCount:%d\n", frameCount);
+        // 输出宽高信息,linesize0 1 2
+        av_log(NULL, AV_LOG_INFO, "width:%d,height:%d,linesize0:%d,linesize1:%d,linesize2:%d\n", destWidth, destHeight, destFrame->linesize[0], destFrame->linesize[1], destFrame->linesize[2]);
+    }
+    // 如果帧数据不为空，释放帧内存
+    if (frame)
+    {
+        av_frame_free(&frame);
+    }
+    return 0;
+}
+
+int main(int argc, char **argv)
+{
+    // 设置日志级别为调试模式
+    av_log_set_level(AV_LOG_DEBUG);
+    // 检查命令行参数是否正确
+    if (argc < 4)
+    {
+        av_log(NULL, AV_LOG_ERROR, "Usage: %s <input> <output> <width*height>\n", argv[0]);
+        return -1;
+    }
+    // 获取输入和输出文件名
+    const char *inFileName = argv[1];
+    const char *outFileName = argv[2];
+    const char *destVideoSizeString = argv[3];
+    int destWidth = 0, destHeight = 0;
+    int ret = av_parse_video_size(&destWidth, &destHeight, destVideoSizeString);
+    if (ret < 0)
+    {
+        av_log(NULL, AV_LOG_ERROR, "invalid video size:%s\n", destVideoSizeString);
+        return -1;
+    }
+    av_log(NULL, AV_LOG_INFO, "destWith:%d,destHeight:%d\n", destWidth, destHeight);
+
+    // 定义一个AVFormatContext结构体，用于存储输入文件的格式信息
+    AVFormatContext *inFmtCtx = NULL;
+    // 打开输入文件
+    ret = avformat_open_input(&inFmtCtx, inFileName, NULL, NULL);
+    if (ret != 0)
+    {
+        // 如果打开失败，记录错误信息
+        av_log(NULL, AV_LOG_ERROR, "Could not open input file %s\n", inFileName);
+        return -1;
+    }
+
+    // 获取输入文件的流信息
+    ret = avformat_find_stream_info(inFmtCtx, NULL);
+    if (ret < 0)
+    {
+        // 如果获取失败，记录错误信息
+        av_log(NULL, AV_LOG_ERROR, "Could not find stream information:%s\n", av_err2str(ret));
+        goto fail;
+    }
+
+    // 查找最佳的视频流索引
+    ret = av_find_best_stream(inFmtCtx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    if (ret < 0)
+    {
+        // 如果查找失败，记录错误信息
+        av_log(NULL, AV_LOG_ERROR, "Could not find best stream index:%s\n", av_err2str(ret));
+        goto fail;
+    }
+
+    // 获取视频流的索引
+    int videoIndex = ret;
+
+    // 分配一个AVCodecContext结构体，用于存储解码器上下文信息
+    AVCodecContext *codecCtx = avcodec_alloc_context3(NULL);
+    if (codecCtx == NULL)
+    {
+        // 如果分配失败，记录错误信息
+        av_log(NULL, AV_LOG_ERROR, "Could not allocate codec context\n");
+        ret = -1;
+        goto fail;
+    }
+
+    // 将流参数复制到解码器上下文
+    avcodec_parameters_to_context(codecCtx, inFmtCtx->streams[videoIndex]->codecpar);
+
+    // 查找解码器
+    const AVCodec *decoder = avcodec_find_decoder(codecCtx->codec_id);
+    if (decoder == NULL)
+    {
+        // 如果查找失败，记录错误信息
+        av_log(NULL, AV_LOG_ERROR, "Could not find codec\n");
+        ret = -1;
+        goto fail;
+    }
+
+    // 打开解码器
+    ret = avcodec_open2(codecCtx, decoder, NULL);
+    if (ret != 0)
+    {
+        // 如果打开失败，记录错误信息
+        av_log(NULL, AV_LOG_ERROR, "Could not open codec:%s\n", av_err2str(ret));
+        goto fail;
+    }
+
+    enum AVPixelFormat destPixfmt = codecCtx->pix_fmt;
+
+    struct SwsContext *swsCtx = sws_getContext(codecCtx->width, codecCtx->height, codecCtx->pix_fmt, destWidth, destHeight, destPixfmt, SWS_BICUBIC, NULL, NULL, NULL);
+    if (swsCtx == NULL)
+    {
+        av_log(NULL, AV_LOG_ERROR, "Could not create SwsContext\n");
+        ret = -1;
+        goto fail;
+    }
+
+    AVFrame *destFrame = av_frame_alloc();
+
+    uint8_t *outBuffer = av_malloc(av_image_get_buffer_size(destPixfmt, destWidth, destHeight, 1));
+    av_image_fill_arrays(destFrame->data, destFrame->linesize, outBuffer, destPixfmt, destWidth, destHeight, 1);
+
+    // 打开输出文件
+    FILE *dest_fp = fopen(outFileName, "wb+");
+    if (dest_fp == NULL)
+    {
+        // 如果打开失败，记录错误信息
+        av_log(NULL, AV_LOG_ERROR, "Could not open output file %s\n", outFileName);
+        ret = -1;
+        goto fail;
+    }
+
+    // 分配一个AVPacket结构体，用于存储数据包
+    AVPacket *packet = av_packet_alloc();
+
+    // 分配一个AVFrame结构体，用于存储解码后的帧数据
+    AVFrame *frame = av_frame_alloc();
+    // 循环读取输入文件中的数据包
+    while (av_read_frame(inFmtCtx, packet) >= 0)
+    {
+        // 如果数据包属于视频流
+        if (packet->stream_index == videoIndex)
+        {
+            // 解码视频帧
+            // if (decodeVideo(codecCtx, packet, dest_fp) == -1)
+            if (decodeVideo(codecCtx, packet, swsCtx, destWidth, destHeight, destFrame, dest_fp) == -1)
+            {
+                ret = -1;
+                av_packet_unref(packet);
+                goto fail;
+            }
+
+            // 释放数据包引用
+            av_packet_unref(packet);
+        }
+    }
+    // 刷新解码器，确保所有帧都被解码
+    // decodeVideo(codecCtx, NULL, dest_fp);
+    decodeVideo(codecCtx, NULL, swsCtx, destWidth, destHeight, destFrame, dest_fp);
+fail:
+    // 如果输入文件格式上下文不为空，关闭输入文件
+    if (inFmtCtx)
+    {
+        avformat_close_input(&inFmtCtx);
+    }
+    // 如果解码器上下文不为空，释放解码器上下文
+    if (codecCtx)
+    {
+        avcodec_free_context(&codecCtx);
+    }
+    // 如果输出文件指针不为空，关闭输出文件
+    if (dest_fp)
+    {
+        fclose(dest_fp);
+    }
+    if (destFrame)
+    {
+        av_frame_free(&destFrame);
+    }
+    if (outBuffer)
+    {
+        av_free(outBuffer);
+    }
+    return ret;
+}
+```
+
 ## 解码后的数据存储
 
 解码后的视频数据通常存储在 `data[0]`、`data[1]`、`data[2]` 等数组中。具体来说：
@@ -1206,7 +1441,7 @@ typedef struct tagBITMAPINFOHEADER {
     } BITMAPINFOHEADER;
 ```
 
-# yuv到h264
+# 视频编码（yuv到h264）
 ## 流程
 | 函数名                     | 描述               |
 | -------------------------- | ------------------ |
@@ -1220,6 +1455,7 @@ typedef struct tagBITMAPINFOHEADER {
 | `avcodec_receive_packet`   | 从编码器接收数据包 |
 
 ## 代码
+[encodeVideoDemo.c](src/encodeVideoDemo.c)
 ```c
 #include "libavcodec/avcodec.h"
 #include "libavutil/avutil.h"
@@ -1621,6 +1857,7 @@ ffplay test1.aac
 ```
 
 ## 代码
+[encodeAudioDemo.c](src/encodeAudioDemo.c)
 ```c
 #include "libavcodec/avcodec.h"
 #include "libavutil/avutil.h"

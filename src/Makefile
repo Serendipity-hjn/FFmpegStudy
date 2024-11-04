@@ -1,5 +1,5 @@
 TARGET=demoBin
-SRC=encodeAudioDemo.c
+SRC=demuxing_dir.c
 CC=gcc
 CFLAGS=-I../include
 LDFLAGS=-L../lib \

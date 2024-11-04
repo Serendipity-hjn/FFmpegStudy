@@ -19,7 +19,6 @@ int main(int argc, char *argv[])
     // 获取命令行的输出音频
     const char *outputName = argv[2];
 
-    av_sdp_create;
     // 打开输入音频文件
     AVFormatContext *inFormatCtx = NULL;
 
