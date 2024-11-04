@@ -2010,3 +2010,43 @@ end:
 
 ffplay aac_by_code.aac
 ```
+
+# 音视频采集
+## 视频采集命令
+- 查看设备列表：
+```bash
+ffmpeg -hide_banner -devices
+```
+<img src="imagesForNotes/设备列表.png">
+
+1. 视频捕获
+使用 `video4linux2`,`v4l2` 设备
+`video4linux2`,`v4l2` 设备用于从支持V4L2的设备（如USB摄像头）捕获视频。
+
+2. 音频捕获
+使用 `alsa` 设备
+`alsa` 设备用于从ALSA音频设备捕获音频。
+
+3. 屏幕捕获
+使用 `x11grab` 设备
+`x11grab` 设备用于捕获X11窗口或屏幕的内容。
+
+- 查看v4l2支持的参数：
+```bash
+ffmpeg -h demuxer=x11grab
+```
+
+- 查看v4l2支持的设备：
+```bash
+ffmpeg -f v4l2 -list_devices true -i ""
+```
+
+- 采集摄像头画面：
+```bash
+ffmpeg -f v4l2 -framerate 30 -video_size 640x480 -i 0 out.yuv
+```
+
+播放摄像头采集画面：
+```bash
+ffplay out.yuv -s 640x480 -pix_fmt yuv420p
+```
