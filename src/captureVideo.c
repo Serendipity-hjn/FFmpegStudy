@@ -3,6 +3,7 @@
 #include "libavcodec/avcodec.h"
 #include <libavutil/log.h>
 #include <time.h>
+#include "libavdevice/avdevice.h"
 
 // 显示可用的摄像头设备
 void avfoundationListDevices()
@@ -24,6 +25,7 @@ void avfoundationListDevices()
 int main(int argc, char *argv[])
 {
     av_log_set_level(AV_LOG_INFO);
+    avdevice_register_all();
     avfoundationListDevices();
     return 0;    
 }

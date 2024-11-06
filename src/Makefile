@@ -12,16 +12,17 @@ WIN_CC = x86_64-w64-mingw32-gcc
 # 使用pkg-config获取编译选项
 CFLAGS = -I../include
 
-# Linux的链接选项
-LDFLAGS_LINUX = -L../lib \
-	-lavutil \
-	-lavformat \
-	-lavcodec \
-	-lswscale \
-	-lswresample \
-	-lavfilter \
-	-lavdevice \
-	-lpostproc
+# 暂时不需要linux可执行文件
+# # Linux的链接选项
+# LDFLAGS_LINUX = -L../lib \
+# 	-lavutil \
+# 	-lavformat \
+# 	-lavcodec \
+# 	-lswscale \
+# 	-lswresample \
+# 	-lavfilter \
+# 	-lavdevice \
+# 	-lpostproc
 
 # Windows的链接选项
 LDFLAGS_WINDOWS = -L../lib_windows \
