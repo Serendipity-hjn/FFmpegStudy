@@ -1,5 +1,5 @@
 TARGET=demoBin
-SRC=demuxing_dir.c
+SRC=captureVideo.c
 CC=gcc
 CFLAGS=-I../include
 LDFLAGS=-L../lib \
