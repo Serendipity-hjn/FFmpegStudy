@@ -1,2 +1,0 @@
-/home/serenNan/Projects/FFmpegCode/build/CMakeFiles/edit_cache.dir
-/home/serenNan/Projects/FFmpegCode/build/CMakeFiles/rebuild_cache.dir
