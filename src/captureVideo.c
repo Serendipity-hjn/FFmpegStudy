@@ -15,12 +15,13 @@ void avfoundationListDevices()
     }
     AVFormatContext *inFmtCtx = avformat_alloc_context();
     // 第二个参数是URL
-    int ret = avformat_open_input(&inFmtCtx, "dummy", inFmt, NULL);
+    int ret = avformat_open_input(&inFmtCtx, "video=Integrated Camera", inFmt, NULL);
     if (ret != 0)
     {
         av_log(NULL, AV_LOG_ERROR, "open input format failed:%s\n", av_err2str(ret));
         return;
     }
+    av_log(NULL,AV_LOG_INFO,"open input format success!\n");
 }
 int main(int argc, char *argv[])
 {

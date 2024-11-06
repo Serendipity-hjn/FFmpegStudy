@@ -36,12 +36,12 @@ LDFLAGS_WINDOWS = -L../lib_windows \
 	-lpostproc
 
 # 默认目标
-all: $(TARGET_LINUX) $(TARGET_WINDOWS)
-
-# 编译Linux版本
-$(TARGET_LINUX): $(SRC)
-	$(CC) $(CFLAGS) $(SRC) $(LDFLAGS_LINUX) -o $(TARGET_LINUX)
-	@echo "Linux编译成功，目标文件: $(TARGET_LINUX)"
+#all: $(TARGET_LINUX) $(TARGET_WINDOWS)
+all: $(TARGET_WINDOWS)
+# # 编译Linux版本
+# $(TARGET_LINUX): $(SRC)
+# 	$(CC) $(CFLAGS) $(SRC) $(LDFLAGS_LINUX) -o $(TARGET_LINUX)
+# 	@echo "Linux编译成功，目标文件: $(TARGET_LINUX)"
 
 # 编译Windows版本
 $(TARGET_WINDOWS): $(SRC)
