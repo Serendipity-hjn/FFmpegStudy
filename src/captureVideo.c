@@ -16,7 +16,7 @@ void avfoundationListDevices()
         av_log(NULL, AV_LOG_ERROR, "find dshow failed!\n");
     }
     // 设置参数
-    AVDictionary *options;
+    AVDictionary *options = NULL;
     av_dict_set(&options, "list_devices", "true", 0);
 
     AVFormatContext *inFmtCtx = avformat_alloc_context();
