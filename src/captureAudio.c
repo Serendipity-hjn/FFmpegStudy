@@ -40,19 +40,14 @@ void dshowListDevices()
     }
 }
 
-void decodeVideo(struct SwsContext *swsCtx, AVCodecContext *decoderCtx, AVFrame *destFrame,
-                 AVPacket *packet, FILE *dest_fp)
+void decodeAudio(AVCodecContext *decoderCtx, AVPacket *packet, FILE *dest_fp)
 {
     if (avcodec_send_packet(decoderCtx, packet) == 0)
     {
         AVFrame *frame = av_frame_alloc();
         while (avcodec_receive_frame(decoderCtx, frame) >= 0)
         {
-            sws_scale(swsCtx, (const uint8_t *const *)frame->data, frame->linesize, 0,
-                      decoderCtx->height, destFrame->data, destFrame->linesize);
-            fwrite(destFrame->data[0], 1, decoderCtx->width * decoderCtx->height, dest_fp);
-            fwrite(destFrame->data[1], 1, decoderCtx->width * decoderCtx->height / 4, dest_fp);
-            fwrite(destFrame->data[2], 1, decoderCtx->width * decoderCtx->height / 4, dest_fp);
+            fwrite(frame->data[0], 1, frame->linesize[0], dest_fp);
         }
         av_frame_free(&frame);
     }
@@ -81,8 +76,9 @@ int main(int argc, char *argv[])
     }
 
     AVDictionary *options = NULL;
-    av_dict_set(&options, "framerate", "30", 0);
-    int ret = avformat_open_input(&inFmtCtx, "video=Integrated Camera", inFmt, &options);
+    // av_dict_set(&options, "framerate", "30", 0);
+    int ret =
+        avformat_open_input(&inFmtCtx, "audio=阵列麦克风 (AMD Audio Device)", inFmt, &options);
     if (ret != 0)
     {
         av_log(NULL, AV_LOG_ERROR, "open input failed:%s\n", av_err2str(ret));
@@ -96,18 +92,18 @@ int main(int argc, char *argv[])
         goto end;
     }
 
-    ret = av_find_best_stream(inFmtCtx, AVMEDIA_TYPE_VIDEO, -1, -1, NULL, 0);
+    ret = av_find_best_stream(inFmtCtx, AVMEDIA_TYPE_AUDIO, -1, -1, NULL, 0);
     if (ret < 0)
     {
         av_log(NULL, AV_LOG_ERROR, "find best stream failed:%s\n", av_err2str(ret));
         goto end;
     }
-    int videoIndex = ret;
+    int audioIndex = ret;
 
     // 创建解码器上下文
     AVCodecContext *decoderCtx = avcodec_alloc_context3(NULL);
 
-    ret = avcodec_parameters_to_context(decoderCtx, inFmtCtx->streams[videoIndex]->codecpar);
+    ret = avcodec_parameters_to_context(decoderCtx, inFmtCtx->streams[audioIndex]->codecpar);
     if (ret < 0)
     {
         av_log(NULL, AV_LOG_ERROR, "copy parameters to context failed:%s\n", av_err2str(ret));
@@ -129,6 +125,7 @@ int main(int argc, char *argv[])
         goto end;
     }
 
+#if 0
     AVFrame *destFrame = av_frame_alloc();
     enum AVPixelFormat destPixFmt = AV_PIX_FMT_YUV420P;
 
@@ -146,6 +143,7 @@ int main(int argc, char *argv[])
         ret = -1;
         goto end;
     }
+#endif
 
     FILE *dest_fp = fopen(outFileName, "wb+");
     if (dest_fp == NULL)
@@ -160,14 +158,16 @@ int main(int argc, char *argv[])
     {
         if (av_read_frame(inFmtCtx, packet) == 0)
         {
-            if (packet->stream_index == videoIndex)
+            if (packet->stream_index == audioIndex)
             {
-                decodeVideo(swsCtx, decoderCtx, destFrame, packet, dest_fp);
+                // decodeVideo(swsCtx, decoderCtx, destFrame, packet, dest_fp);
+                decodeAudio(decoderCtx, packet, dest_fp);
             }
         }
         av_packet_unref(packet);
     }
-    decodeVideo(swsCtx,decoderCtx, destFrame,NULL, dest_fp);
+    // decodeVideo(swsCtx, decoderCtx, destFrame, NULL, dest_fp);
+    decodeAudio(decoderCtx, NULL, dest_fp);
 
 end:
     if (inFmtCtx)
@@ -181,10 +181,6 @@ end:
     if (dest_fp)
     {
         fclose(dest_fp);
-    }
-    if (outBuffer)
-    {
-        av_freep(&outBuffer);
     }
     return ret;
 }

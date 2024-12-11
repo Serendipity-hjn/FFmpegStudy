@@ -1,5 +1,5 @@
 # 源文件
-SRC = captureVideo.c
+SRC = captureAudio.c
 
 # 目标文件
 TARGET_LINUX = demoBin_linux
@@ -12,17 +12,17 @@ WIN_CC = x86_64-w64-mingw32-gcc
 # 使用pkg-config获取编译选项
 CFLAGS = -I../include
 
-# 暂时不需要linux可执行文件
-# # Linux的链接选项
-# LDFLAGS_LINUX = -L../lib \
-# 	-lavutil \
-# 	-lavformat \
-# 	-lavcodec \
-# 	-lswscale \
-# 	-lswresample \
-# 	-lavfilter \
-# 	-lavdevice \
-# 	-lpostproc
+暂时不需要linux可执行文件
+# Linux的链接选项
+LDFLAGS_LINUX = -L../lib \
+	-lavutil \
+	-lavformat \
+	-lavcodec \
+	-lswscale \
+	-lswresample \
+	-lavfilter \
+	-lavdevice \
+	-lpostproc
 
 # Windows的链接选项
 LDFLAGS_WINDOWS = -L../lib_windows \
